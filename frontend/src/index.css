@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-body bg-med-navy text-med-white antialiased selection:bg-med-teal/30;
+  }
+  
+  h1, h2, h3, h4, h5 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(13, 31, 60, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 180, 216, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 
+                inset 0 1px 0 rgba(255,255,255,0.05);
+    @apply transition-all duration-300;
+  }
+
+  .glass-panel {
+    background: rgba(17, 34, 64, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 180, 216, 0.1);
+    @apply rounded-3xl shadow-2xl;
+  }
+
+  .medical-btn {
+    @apply relative px-8 py-4 rounded-xl font-bold transition-all duration-500 overflow-hidden 
+           bg-med-teal text-med-navy hover:bg-med-teal-lt hover:shadow-[0_0_25px_rgba(0,180,216,0.5)]
+           active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none;
+  }
+
+  .hero-bg {
+    background: linear-gradient(
+      135deg,
+      rgba(10, 22, 40, 0.94) 0%,
+      rgba(0, 180, 216, 0.12) 100%
+    ), url('https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
+  .diagnose-bg {
+    background: linear-gradient(
+      180deg,
+      rgba(10, 22, 40, 0.96) 0%,
+      rgba(13, 31, 60, 0.92) 100%
+    ), url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-med-navy;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-med-mid border-2 border-med-navy rounded-full hover:bg-med-teal/50 transition-colors;
+}
+
+/* Cinematic Effects */
+.reveal-text {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+}
+
+.glow-teal {
+  text-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
+}
+
+.marquee-strip {
+  @apply py-4 bg-med-dark border-y border-med-teal/20 overflow-hidden whitespace-nowrap;
+}

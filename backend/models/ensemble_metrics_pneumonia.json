@@ -1,0 +1,1 @@
+{"svm": {"precision": 86.67, "recall": 83.97, "f1-score": 82.82}, "random_forest": {"precision": 83.82, "recall": 80.93, "f1-score": 79.3}, "decision_tree": {"precision": 79.23, "recall": 78.37, "f1-score": 77.03}, "logistic_regression": {"precision": 86.01, "recall": 82.69, "f1-score": 81.24}}
