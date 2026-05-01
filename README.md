@@ -76,15 +76,6 @@ The final diagnosis is a consensus between these models, with the CNN acting as 
 
 ---
 
-## 👨‍💻 Author
-
-**Yash Bishnoi** - *Lead ML Engineer*
-- [GitHub](https://github.com/YashBishnoi07)
-- [LinkedIn](https://www.linkedin.com/in/yashbishnoi07/)
-- [Email](mailto:yashbishnoi.yb7@gmail.com)
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
