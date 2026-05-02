@@ -9,6 +9,7 @@ import SplitType from 'split-type';
 import ParticleField from '../components/ParticleField';
 import MarqueeStrip from '../components/MarqueeStrip';
 import StatsCounter from '../components/StatsCounter';
+import HowItWorks from '../components/HowItWorks';
 import { pageVariants } from '../animations/pageTransitions';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -179,6 +180,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* How It Works */}
+      <HowItWorks />
 
       {/* Final CTA */}
       <section className="py-40 relative">

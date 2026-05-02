@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function UploadZone({ onUpload, isLoading, selectedImage }) {
@@ -21,56 +21,47 @@ export default function UploadZone({ onUpload, isLoading, selectedImage }) {
     <div className="w-full">
       <div 
         {...getRootProps()} 
-        className={`relative overflow-hidden rounded-3xl border-2 border-dashed transition-all duration-300 p-8 sm:p-12 text-center cursor-pointer 
-          ${isDragActive ? 'border-medical-400 bg-medical-500/10' : 'border-gray-600 bg-dark-800/30 hover:bg-dark-800/50 hover:border-gray-500'}
+        className={`relative overflow-hidden rounded-[2rem] border-2 border-dashed transition-all duration-500 p-10 lg:p-14 text-center cursor-pointer 
+          ${isDragActive ? 'border-med-teal bg-med-teal/10 shadow-[0_0_30px_rgba(0,180,216,0.1)]' : 'border-white/10 bg-med-dark/30 hover:bg-med-dark/50 hover:border-white/20'}
           ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         <input {...getInputProps()} />
         
-        {/* Pulsing ring when dragging */}
-        {isDragActive && (
-          <motion.div 
-            className="absolute inset-0 border-2 border-medical-500 rounded-3xl"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ repeat: Infinity, duration: 1.5, repeatType: 'reverse' }}
-          />
-        )}
-
         {selectedImage ? (
           <div className="flex flex-col items-center">
-            <div className="relative w-48 h-48 mb-4 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative w-full max-w-[240px] aspect-square mb-6 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            >
               <img src={URL.createObjectURL(selectedImage)} alt="Preview" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-2 left-2 flex items-center text-xs font-medium text-white/80">
-                <ImageIcon className="w-3 h-3 mr-1" />
-                {selectedImage.name}
+              <div className="absolute inset-0 bg-gradient-to-t from-med-navy/80 to-transparent" />
+              <div className="absolute bottom-3 left-3 flex items-center text-[10px] font-bold text-white/90 uppercase tracking-widest">
+                <FileText className="w-3 h-3 mr-2 text-med-teal" />
+                {selectedImage.name.length > 20 ? selectedImage.name.substring(0, 20) + '...' : selectedImage.name}
               </div>
-            </div>
+            </motion.div>
             {!isLoading && (
-              <p className="text-sm text-gray-400 mt-2 hover:text-white transition-colors">
-                Click or drag to choose a different image
+              <p className="text-xs font-bold text-med-muted uppercase tracking-[0.2em] hover:text-med-teal transition-colors">
+                Tap to change image
               </p>
             )}
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <div className={`p-4 rounded-full mb-6 ${isDragActive ? 'bg-medical-500 text-white' : 'bg-dark-700 text-gray-400'} transition-colors`}>
-              <UploadCloud className="w-8 h-8" />
+            <div className={`w-16 h-16 rounded-2xl mb-8 flex items-center justify-center transition-all duration-500 ${isDragActive ? 'bg-med-teal text-med-navy' : 'bg-med-navy text-med-teal border border-med-teal/20'}`}>
+              <UploadCloud className={`w-8 h-8 ${isDragActive ? 'animate-bounce' : ''}`} />
             </div>
-            <h3 className="text-xl font-semibold mb-2">
-              {isDragActive ? 'Drop your scan here' : 'Drag & drop a medical scan'}
+            <h3 className="text-2xl font-bold font-display text-white mb-3">
+              {isDragActive ? 'Drop it here' : 'Upload Medical Scan'}
             </h3>
-            <p className="text-gray-400 mb-6 text-sm max-w-sm mx-auto">
-              Support for JPEG, JPG, and PNG files up to 10MB.
+            <p className="text-med-muted mb-10 text-sm max-w-[200px] mx-auto leading-relaxed">
+              Drag and drop your scan or click to browse.
             </p>
-            <button 
-              className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 font-medium hover:bg-white/10 transition-colors"
-              onClick={(e) => e.preventDefault()} // dropzone handles the click
-            >
-              Browse Files
-            </button>
+            <div className="px-8 py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-med-white group-hover:bg-white/10 transition-all">
+              Choose File
+            </div>
           </div>
         )}
       </div>

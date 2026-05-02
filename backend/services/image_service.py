@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ImageService:
 
     @staticmethod
-    def preprocess(file_bytes: bytes, target_size: tuple[int, int] = (300, 300), grayscale: bool = False) -> tuple[np.ndarray, str]:
+    def preprocess(file_bytes: bytes, target_size: tuple[int, int] = (240, 240), grayscale: bool = False) -> tuple[np.ndarray, str]:
         """
         Preprocess an image for CNN inference.
 

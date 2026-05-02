@@ -11,29 +11,23 @@ from dotenv import load_dotenv
 
 from routes.diagnose import router as diagnose_router
 from routes.models import router as models_router
-from services.cnn_service import CNNService
-from services.ml_service import MLService
+from services.model_loader import load_all_models
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-# Shared model registry — populated at startup
-model_registry: dict = {}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load all ML models into memory at startup."""
-    logger.info("Loading ML models...")
+    logger.info("Starting up and loading models...")
     try:
-        # These are handled by the services themselves now or can be pre-cached
-        CNNService.get_model("pneumonia")
-        CNNService.get_model("tumor")
-        logger.info("✅ Core models initialized")
+        load_all_models()
+        logger.info("✅ All models loaded and services ready")
     except Exception as e:
-        logger.warning(f"⚠️  Initialization warning: {e}")
+        logger.error(f"❌ Critical initialization failure: {e}")
+        # In production, you might want to exit here
     yield
     logger.info("Shutting down...")
 
@@ -41,7 +35,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Automated Disease Diagnosis API",
     description="AI-powered medical image analysis for pneumonia and brain tumor detection",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -59,23 +53,30 @@ app.add_middleware(
 app.include_router(diagnose_router, prefix="/api/diagnose", tags=["Diagnosis"])
 app.include_router(models_router, prefix="/api/models", tags=["Models"])
 
+# Import and include test router if it exists
+try:
+    from routes.test import router as test_router
+    app.include_router(test_router, prefix="/api/test", tags=["Testing"])
+except ImportError:
+    pass
+
 
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    cnn_p = os.path.exists("models/cnn_pneumonia_v2.h5")
-    cnn_t = os.path.exists("models/cnn_tumor_v2.h5")
+    from services.model_loader import _models
     return {
         "status": "ok",
-        "models_found": {
-            "cnn_pneumonia": cnn_p,
-            "cnn_tumor": cnn_t,
-        },
-        "ready": cnn_p and cnn_t,
+        "version": "2.0.0",
+        "models_loaded": list(_models.keys()),
+        "ready": len(_models) > 0
     }
 
 @app.get("/api/stats")
 async def get_stats():
     """Get scan statistics."""
-    from services.stats_service import StatsService
-    return StatsService.get_stats()
+    try:
+        from services.stats_service import StatsService
+        return StatsService.get_stats()
+    except:
+        return {"error": "Stats service not available"}

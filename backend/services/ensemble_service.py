@@ -1,146 +1,137 @@
+# backend/services/ensemble_service.py
 import numpy as np
-import joblib
 import json
-import os
-import tensorflow as tf
-from .cnn_service import preprocess_image
+from services.model_loader import get
 
-class EnsembleService:
-    _models_cache = {}
+def _get_pneumonia_features(image_bytes):
+    from services.cnn_service import preprocess_image
+    arr          = preprocess_image(image_bytes)
+    feat_model   = get('pneu_features')
+    features     = feat_model.predict(arr, verbose=0)
+    scaler       = get('pneu_scaler')
+    return scaler.transform(features)
 
-    @staticmethod
-    def _get_feature_model(disease_type):
-        cache_key = f"feature_{disease_type}"
-        if cache_key not in EnsembleService._models_cache:
-            model_path = f'models/cnn_{disease_type}_v2.h5'
-            if not os.path.exists(model_path): return None
-            full = tf.keras.models.load_model(model_path)
-            # Use the pooling layer for features
-            EnsembleService._models_cache[cache_key] = tf.keras.Model(
-                inputs=full.input,
-                outputs=full.get_layer('global_average_pooling2d').output
-            )
-        return EnsembleService._models_cache[cache_key]
+def _get_tumor_features(image_bytes):
+    from services.cnn_service import preprocess_image
+    arr          = preprocess_image(image_bytes)
+    feat_model   = get('tumor_features')
+    features     = feat_model.predict(arr, verbose=0)
+    scaler       = get('tumor_scaler')
+    return scaler.transform(features)
 
-    @staticmethod
-    def _get_ensemble_model(disease_type, model_name):
-        cache_key = f"ensemble_{disease_type}_{model_name}"
-        if cache_key not in EnsembleService._models_cache:
-            model_path = f'models/ensemble_{disease_type}_{model_name}.pkl'
-            if os.path.exists(model_path):
-                EnsembleService._models_cache[cache_key] = joblib.load(model_path)
-            else:
-                return None
-        return EnsembleService._models_cache[cache_key]
-
-    @staticmethod
-    def run_pneumonia_ensemble(image_bytes, cnn_prediction: str):
-        feature_model = EnsembleService._get_feature_model("pneumonia")
-        if not feature_model: return None
-        
-        arr = preprocess_image(image_bytes, target_size=(240, 240))
-        features = feature_model.predict(arr, verbose=0)
-        
-        # Cache scaler too
-        if "scaler_pneumonia" not in EnsembleService._models_cache:
-            EnsembleService._models_cache["scaler_pneumonia"] = joblib.load('models/scaler_pneumonia.pkl')
-        scaler = EnsembleService._models_cache["scaler_pneumonia"]
-        features_s = scaler.transform(features)
-        
-        with open('models/optimal_threshold_pneumonia.json') as f:
-            config = json.load(f)
+def run_pneumonia_ensemble(image_bytes: bytes, cnn_prediction: str) -> dict:
+    fv    = _get_pneumonia_features(image_bytes)
+    cfg   = get('pneu_cfg')
+    flip  = cfg['flip_probabilities']
+    algos = ['svm','random_forest','decision_tree','logistic_regression']
+    
+    individual = {}
+    votes      = []
+    
+    print("\n[ENSEMBLE PNEUMONIA]")
+    for algo in algos:
+        try:
+            clf   = get(f'ensemble_pneumonia_{algo}')
+            pred  = int(clf.predict(fv)[0])
+            proba = clf.predict_proba(fv)[0].tolist()
             
-        model_names = ['svm', 'random_forest', 'decision_tree', 'logistic_regression']
-        results = {}
-        votes = 0
-        
-        for name in model_names:
-            clf = EnsembleService._get_ensemble_model("pneumonia", name)
-            if not clf: continue
+            # Apply flip correction
+            if flip:
+                pred  = 1 - pred
+                proba = list(reversed(proba))
             
-            pred = clf.predict(features_s)[0]
-            proba = clf.predict_proba(features_s)[0]
-            
-            if config['flip_probabilities']:
-                pred = 1 - pred
-                proba = proba[::-1]
-                
             label = 'PNEUMONIA' if pred == 1 else 'NORMAL'
-            if pred == 1: votes += 1
+            votes.append(pred)
             
-            results[name] = {
-                'prediction': label,
-                'confidence': float(np.max(proba)) * 100
+            print(f"  [{algo:25s}] → {label}  "
+                  f"(Normal: {proba[0]*100:.1f}%  "
+                  f"Pneumonia: {proba[1]*100:.1f}%)")
+            
+            individual[algo] = {
+                'prediction'           : label,
+                'confidence'           : round(max(proba), 4), # 0-1 range
+                'probability_pneumonia': round(proba[1], 4),
+                'probability_normal'   : round(proba[0], 4),
             }
-            
-        # Determine final prediction with CNN Tie-Breaker
-        if votes > 2:
+        except Exception as e:
+            print(f"  ⚠️ Error in {algo}: {e}")
+    
+    pneumonia_votes  = sum(votes)
+    normal_votes     = len(votes) - pneumonia_votes
+    
+    # Majority vote with Safety-First Tie-Breaker
+    if pneumonia_votes > 2:
+        ensemble_pred = 'PNEUMONIA'
+    elif pneumonia_votes < 2:
+        ensemble_pred = 'NORMAL'
+    else:
+        # Tie (2 vs 2): Safety-First Tie-Breaker
+        pneu_confs = [individual[a]['confidence'] for a in algos if individual[a]['prediction'] == 'PNEUMONIA']
+        if any(c > 0.90 for c in pneu_confs):
             ensemble_pred = 'PNEUMONIA'
-        elif votes < 2:
-            ensemble_pred = 'NORMAL'
         else:
-            # Tie (2 vs 2): CNN breaks the tie
             ensemble_pred = cnn_prediction
             
-        return {
-            'individual_models': results,
-            'ensemble_prediction': ensemble_pred,
-            'ensemble_confidence': np.mean([r['confidence'] for r in results.values()]) if results else 0,
-            'vote_count': {'pneumonia': votes, 'normal': 4 - votes},
-            'tie_broken_by_cnn': votes == 2
+    avg_conf = float(np.mean([individual[a]['confidence'] for a in individual])) if individual else 0
+    
+    return {
+        'individual_models'   : individual,
+        'ensemble_prediction' : ensemble_pred,
+        'ensemble_confidence' : round(avg_conf, 4),
+        'vote_count'          : {
+            'pneumonia': pneumonia_votes,
+            'normal'   : normal_votes
         }
+    }
 
-    @staticmethod
-    def run_tumor_ensemble(image_bytes, cnn_prediction: str):
-        feature_model = EnsembleService._get_feature_model("tumor")
-        if not feature_model: return None
-        
-        arr = preprocess_image(image_bytes, target_size=(240, 240))
-        features = feature_model.predict(arr, verbose=0)
-        
-        if "scaler_tumor" not in EnsembleService._models_cache:
-            EnsembleService._models_cache["scaler_tumor"] = joblib.load('models/scaler_tumor.pkl')
-        scaler = EnsembleService._models_cache["scaler_tumor"]
-        features_s = scaler.transform(features)
-        
-        with open('models/idx_to_class_tumor.json') as f:
-            idx_to_class = json.load(f)
+def run_tumor_ensemble(image_bytes: bytes, cnn_prediction: str) -> dict:
+    fv        = _get_tumor_features(image_bytes)
+    tumor_map = get('tumor_map')
+    algos     = ['svm','random_forest','decision_tree','logistic_regression']
+    
+    individual = {}
+    pred_labels= []
+    
+    print("\n[ENSEMBLE TUMOR]")
+    for algo in algos:
+        try:
+            clf       = get(f'ensemble_tumor_{algo}')
+            pred_idx  = int(clf.predict(fv)[0])
+            proba     = clf.predict_proba(fv)[0].tolist()
+            label     = tumor_map[pred_idx]
+            pred_labels.append(label)
             
-        model_names = ['svm', 'random_forest', 'decision_tree', 'logistic_regression']
-        results = {}
-        
-        for name in model_names:
-            clf = EnsembleService._get_ensemble_model("tumor", name)
-            if not clf: continue
+            all_probs = {tumor_map[i]: round(proba[i], 4)
+                         for i in range(len(proba))}
             
-            pred_idx = str(clf.predict(features_s)[0])
-            proba = clf.predict_proba(features_s)[0]
+            print(f"  [{algo:25s}] → {label}  ({max(proba)*100:.1f}%)")
             
-            label = idx_to_class[pred_idx]
-            
-            results[name] = {
-                'prediction': label,
-                'confidence': float(np.max(proba)) * 100
+            individual[algo] = {
+                'prediction'             : label,
+                'confidence'             : round(max(proba), 4), # 0-1 range
+                'all_class_probabilities': all_probs,
             }
-            
-        # Majority vote with Tie-Breaker
-        all_preds = [results[n]['prediction'] for n in results]
+        except Exception as e:
+            print(f"  ⚠️ Error in {algo}: {e}")
+    
+    # Majority vote with Tie-Breaker
+    if not pred_labels:
+        return None
         
-        # Check if there is a single clear winner
-        pred_counts = {p: all_preds.count(p) for p in set(all_preds)}
-        max_votes = max(pred_counts.values()) if pred_counts else 0
-        winners = [p for p, count in pred_counts.items() if count == max_votes]
+    counts = {p: pred_labels.count(p) for p in set(pred_labels)}
+    max_v  = max(counts.values())
+    winners= [p for p, c in counts.items() if c == max_v]
+    
+    if len(winners) == 1 and max_v >= 2:
+        ensemble_pred = winners[0]
+    else:
+        ensemble_pred = cnn_prediction
         
-        if len(winners) == 1 and max_votes >= 2:
-            ensemble_pred = winners[0]
-        else:
-            # Tie or no consensus: CNN breaks the tie
-            ensemble_pred = cnn_prediction
-            
-        return {
-            'individual_models': results,
-            'ensemble_prediction': ensemble_pred,
-            'ensemble_confidence': np.mean([r['confidence'] for r in results.values()]) if results else 0,
-            'vote_distribution': pred_counts,
-            'tie_broken_by_cnn': len(winners) != 1 or max_votes < 2
-        }
+    avg_conf = float(np.mean([individual[a]['confidence'] for a in individual])) if individual else 0
+    
+    return {
+        'individual_models'   : individual,
+        'ensemble_prediction' : ensemble_pred,
+        'ensemble_confidence' : round(avg_conf, 4),
+        'vote_distribution'   : counts
+    }

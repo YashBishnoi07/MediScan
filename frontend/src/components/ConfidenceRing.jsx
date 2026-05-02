@@ -19,7 +19,7 @@ export default function ConfidenceRing({ percentage, size = 120, strokeWidth = 8
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-dark-700"
+          className="text-med-mid/20"
         />
         {/* Animated progress ring */}
         <motion.circle
@@ -35,21 +35,21 @@ export default function ConfidenceRing({ percentage, size = 120, strokeWidth = 8
           transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
           style={{
             strokeDasharray: circumference,
-            filter: `drop-shadow(0 0 8px ${color}66)`
+            filter: `drop-shadow(0 0 12px ${color}88)`
           }}
           className="transition-all duration-1000"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span 
-          className="text-2xl font-bold"
+          className="text-2xl font-bold font-display text-white"
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1, duration: 0.5 }}
         >
           {percentage}%
         </motion.span>
-        <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Confidence</span>
+        <span className="text-[8px] uppercase tracking-[0.2em] text-med-muted font-bold mt-1">Confidence</span>
       </div>
     </div>
   );

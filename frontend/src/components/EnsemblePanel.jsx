@@ -60,7 +60,7 @@ export default function EnsemblePanel({ result }) {
         <div className="flex items-center gap-6">
             <div className="flex flex-col items-center">
                 <span className="text-[10px] uppercase font-bold text-med-muted mb-1">Certainty</span>
-                <span className="text-2xl font-mono text-white">{ensemble_confidence.toFixed(1)}%</span>
+                <span className="text-2xl font-mono text-white">{(ensemble_confidence * 100).toFixed(1)}%</span>
             </div>
             <div className="w-px h-10 bg-white/10" />
             <div className="flex flex-col items-center">
@@ -91,14 +91,14 @@ export default function EnsemblePanel({ result }) {
               </div>
               <div className="text-right">
                  <p className="text-[10px] font-bold uppercase text-med-muted mb-1">Confidence</p>
-                 <p className="text-lg font-mono text-white">{data.confidence.toFixed(1)}%</p>
+                  <p className="text-lg font-mono text-white">{(data.confidence * 100).toFixed(1)}%</p>
               </div>
             </div>
 
             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${data.confidence}%` }}
+                    animate={{ width: `${data.confidence * 100}%` }}
                     transition={{ duration: 1.5, delay: 0.5 + i * 0.1 }}
                     className="h-full rounded-full"
                     style={{ backgroundColor: MODEL_COLORS[key] }}

@@ -9,8 +9,13 @@ import ModelCard from './ModelCard';
 import HeatmapOverlay from './HeatmapOverlay';
 import SearchPathViz from './SearchPathViz';
 import EnsemblePanel from './EnsemblePanel';
+import Tooltip from './Tooltip';
+import ResultExplainer from './ResultExplainer';
+import GradCamExplainer from './GradCamExplainer';
+import { generateMedicalReport } from '../utils/reportGenerator';
+import { Zap } from 'lucide-react';
 
-export default function ResultsPanel({ result }) {
+export default function ResultsPanel({ result, patientInfo }) {
   const [showFullDetails, setShowFullDetails] = useState(false);
   const resultsRef = useRef(null);
 
@@ -29,22 +34,13 @@ export default function ResultsPanel({ result }) {
     return () => timers.forEach(clearTimeout);
   }, [result]);
 
-  const generatePDF = async () => {
-    const element = resultsRef.current;
-    const canvas = await html2canvas(element, { 
-      scale: 2, 
-      useCORS: true, 
-      backgroundColor: '#0A1628' 
-    });
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`MediScan_Report_${result.disease_type}_${Date.now()}.pdf`);
+  const handleDownloadReport = async () => {
+    await generateMedicalReport(
+      patientInfo,
+      result,
+      result.images.original,
+      result.images.heatmap
+    );
   };
 
   return (
@@ -59,11 +55,12 @@ export default function ResultsPanel({ result }) {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={generatePDF}
-              className="p-3 rounded-xl bg-med-teal/10 border border-med-teal/20 text-med-teal hover:bg-med-teal hover:text-med-navy transition-all"
-              title="Download PDF"
+              onClick={handleDownloadReport}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-med-teal/10 border border-med-teal/20 text-med-teal hover:bg-med-teal hover:text-med-navy transition-all font-bold text-xs"
+              title="Download Medical PDF"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4" />
+              Download Clinical Report
             </button>
             <button className="p-3 rounded-xl bg-white/5 border border-white/10 text-med-white hover:border-white/30 transition-all">
               <Share2 className="w-5 h-5" />
@@ -80,6 +77,7 @@ export default function ResultsPanel({ result }) {
               heatmap={result.images.heatmap} 
               isPositive={result.is_positive}
             />
+            <GradCamExplainer />
           </div>
 
           {/* Core Metrics */}
@@ -96,10 +94,15 @@ export default function ResultsPanel({ result }) {
             </div>
 
             <div className={`flex items-end gap-6 transition-all duration-700 delay-700 ${revealStep >= 3 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-              <ConfidenceRing 
-                percentage={Math.round(result.confidence * 100)} 
-                color={result.is_positive ? '#EF233C' : '#00B4D8'} 
-              />
+              <Tooltip 
+                label="Confidence Score" 
+                explanation="How certain the AI is about its prediction. Above 85% is considered high confidence."
+              >
+                <ConfidenceRing 
+                  percentage={Math.round(result.confidence * 100)} 
+                  color={result.is_positive ? '#EF233C' : '#00B4D8'} 
+                />
+              </Tooltip>
               <div className="pb-2">
                 <div className="text-med-muted text-xs uppercase font-bold tracking-widest mb-1">Processing Time</div>
                 <div className="text-2xl font-mono text-white">{result.processing_time_sec}s</div>
@@ -118,6 +121,8 @@ export default function ResultsPanel({ result }) {
           </div>
         </div>
       </div>
+
+      <ResultExplainer diseaseType={result.disease_type} prediction={result.prediction} />
 
       {/* SHAP Explainability Panel */}
       <motion.div 
@@ -183,6 +188,4 @@ export default function ResultsPanel({ result }) {
 }
 
 // Sub-components need some minor styling updates to match the new theme
-const Zap = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-);
+
