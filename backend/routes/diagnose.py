@@ -21,13 +21,17 @@ async def diagnose_pneumonia_route(file: UploadFile = File(...)):
         search_path = SearchService.run_a_star(cnn['prediction'], cnn['confidence'])
         segmented_b64 = SegmentationService.segment(image_bytes)
         
+        # Defaults — CNN result is the primary verdict
+        final_prediction = cnn['prediction']
+        final_confidence = cnn['confidence']
+
         # --- Consensus Override (conservative) ---
         # Rule 1: CNN predicts PNEUMONIA but with low confidence → let ensemble decide
         cnn_is_uncertain_positive = (cnn['prediction'] == 'PNEUMONIA' and cnn['probability_pneumonia'] < 0.75)
         # Rule 2: All 4 ensemble models unanimously agree (override CNN either way)
         pneumonia_votes = ensemble.get('vote_count', {}).get('pneumonia', 0) if ensemble else 0
         unanimous_ensemble = (pneumonia_votes == 4 or pneumonia_votes == 0)
-        
+
         if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
             final_prediction = ensemble['ensemble_prediction']
             final_confidence = ensemble['ensemble_confidence']
@@ -70,6 +74,10 @@ async def diagnose_tumor_route(file: UploadFile = File(...)):
         search_path = SearchService.run_a_star(cnn['prediction'], cnn['confidence'])
         segmented_b64 = SegmentationService.segment(image_bytes)
         
+        # Defaults — CNN result is the primary verdict
+        final_prediction = cnn['prediction']
+        final_confidence = cnn['confidence']
+
         # --- Consensus Override (conservative) ---
         # Rule 1: CNN predicts a tumor but with low confidence → let ensemble decide
         cnn_is_uncertain_positive = (cnn['prediction'] != 'notumor' and cnn['confidence'] < 0.70)
@@ -77,7 +85,7 @@ async def diagnose_tumor_route(file: UploadFile = File(...)):
         vote_dist = ensemble.get('vote_distribution', {}) if ensemble else {}
         top_votes = max(vote_dist.values()) if vote_dist else 0
         unanimous_ensemble = (top_votes == 4)
-        
+
         if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
             final_prediction = ensemble['ensemble_prediction']
             final_confidence = ensemble['ensemble_confidence']
