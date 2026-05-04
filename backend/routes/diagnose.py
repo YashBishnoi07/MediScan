@@ -21,18 +21,16 @@ async def diagnose_pneumonia_route(file: UploadFile = File(...)):
         search_path = SearchService.run_a_star(cnn['prediction'], cnn['confidence'])
         segmented_b64 = SegmentationService.segment(image_bytes)
         
-        # Consensus Override: Majority Wins if strong consensus (>= 3/4)
-        final_prediction = cnn['prediction']
-        final_confidence = cnn['confidence']
+        # --- Consensus Override (conservative) ---
+        # Rule 1: CNN predicts PNEUMONIA but with low confidence → let ensemble decide
+        cnn_is_uncertain_positive = (cnn['prediction'] == 'PNEUMONIA' and cnn['probability_pneumonia'] < 0.75)
+        # Rule 2: All 4 ensemble models unanimously agree (override CNN either way)
+        pneumonia_votes = ensemble.get('vote_count', {}).get('pneumonia', 0) if ensemble else 0
+        unanimous_ensemble = (pneumonia_votes == 4 or pneumonia_votes == 0)
         
-        if ensemble:
-            votes = ensemble.get('vote_count', {})
-            max_votes = max(votes.values()) if votes else 0
-            
-            # If 3 or more models agree on a different result, or if CNN is unsure (< 0.7)
-            if max_votes >= 3 or cnn['confidence'] < 0.7:
-                final_prediction = ensemble['ensemble_prediction']
-                final_confidence = ensemble['ensemble_confidence']
+        if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
+            final_prediction = ensemble['ensemble_prediction']
+            final_confidence = ensemble['ensemble_confidence']
 
         return {
             'status': 'success',
@@ -72,18 +70,17 @@ async def diagnose_tumor_route(file: UploadFile = File(...)):
         search_path = SearchService.run_a_star(cnn['prediction'], cnn['confidence'])
         segmented_b64 = SegmentationService.segment(image_bytes)
         
-        # Consensus Override: Majority Wins if strong consensus (>= 3/4)
-        final_prediction = cnn['prediction']
-        final_confidence = cnn['confidence']
+        # --- Consensus Override (conservative) ---
+        # Rule 1: CNN predicts a tumor but with low confidence → let ensemble decide
+        cnn_is_uncertain_positive = (cnn['prediction'] != 'notumor' and cnn['confidence'] < 0.70)
+        # Rule 2: All 4 ensemble models unanimously agree on the same class
+        vote_dist = ensemble.get('vote_distribution', {}) if ensemble else {}
+        top_votes = max(vote_dist.values()) if vote_dist else 0
+        unanimous_ensemble = (top_votes == 4)
         
-        if ensemble:
-            votes = ensemble.get('vote_distribution', {})
-            max_votes = max(votes.values()) if votes else 0
-            
-            # If 3 or more models agree on a different result, or if CNN is unsure (< 0.7)
-            if max_votes >= 3 or cnn['confidence'] < 0.7:
-                final_prediction = ensemble['ensemble_prediction']
-                final_confidence = ensemble['ensemble_confidence']
+        if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
+            final_prediction = ensemble['ensemble_prediction']
+            final_confidence = ensemble['ensemble_confidence']
 
         return {
             'status': 'success',
