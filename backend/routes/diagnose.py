@@ -30,11 +30,23 @@ async def diagnose_pneumonia_route(file: UploadFile = File(...)):
         cnn_is_uncertain_positive = (cnn['prediction'] == 'PNEUMONIA' and cnn['probability_pneumonia'] < 0.75)
         # Rule 2: All 4 ensemble models unanimously agree (override CNN either way)
         pneumonia_votes = ensemble.get('vote_count', {}).get('pneumonia', 0) if ensemble else 0
+        normal_votes    = ensemble.get('vote_count', {}).get('normal',   0) if ensemble else 0
         unanimous_ensemble = (pneumonia_votes == 4 or pneumonia_votes == 0)
 
         if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
             final_prediction = ensemble['ensemble_prediction']
             final_confidence = ensemble['ensemble_confidence']
+
+        # --- Confidence Boosting ---
+        # When CNN is correct but has low confidence AND ensemble majority confirms,
+        # use the ensemble's more meaningful confidence score for display.
+        elif ensemble:
+            confirming_votes = pneumonia_votes if final_prediction == 'PNEUMONIA' else normal_votes
+            if confirming_votes >= 3:
+                # Ensemble confirms CNN's verdict with a majority — use ensemble confidence
+                final_confidence = max(final_confidence, ensemble['ensemble_confidence'])
+                print(f"[CONFIDENCE BOOST] Ensemble {confirming_votes}/4 confirms CNN."
+                      f" Confidence: {cnn['confidence']*100:.1f}% → {final_confidence*100:.1f}%")
 
         return {
             'status': 'success',
@@ -89,6 +101,16 @@ async def diagnose_tumor_route(file: UploadFile = File(...)):
         if ensemble and (cnn_is_uncertain_positive or unanimous_ensemble):
             final_prediction = ensemble['ensemble_prediction']
             final_confidence = ensemble['ensemble_confidence']
+
+        # --- Confidence Boosting ---
+        # When CNN has low confidence but ensemble confirms the same verdict,
+        # use the ensemble's score which is more representative of system certainty.
+        elif ensemble:
+            confirming_votes = vote_dist.get(final_prediction, 0)
+            if confirming_votes >= 3:
+                final_confidence = max(final_confidence, ensemble['ensemble_confidence'])
+                print(f"[CONFIDENCE BOOST] Ensemble {confirming_votes}/4 confirms CNN."
+                      f" Confidence: {cnn['confidence']*100:.1f}% → {final_confidence*100:.1f}%")
 
         return {
             'status': 'success',
