@@ -11,3 +11,5 @@ matplotlib
 seaborn
 scipy
 python-dotenv
+tensorflow
+tf_keras
