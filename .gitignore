@@ -40,5 +40,7 @@ backend/dataset/
 !backend/models/*.pkl
 *.json
 !backend/models/*.json
+!frontend/package.json
+!frontend/package-lock.json
 .env
 .docker
