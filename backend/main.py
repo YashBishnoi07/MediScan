@@ -3,6 +3,8 @@ FastAPI Main Application
 Automated Disease Diagnosis System
 """
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI

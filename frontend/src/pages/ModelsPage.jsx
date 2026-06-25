@@ -21,7 +21,7 @@ const MODEL_EXPLANATIONS = {
     weakness: 'Less intuitive to interpret than decision trees.',
     analogy: 'Like drawing the clearest possible line between two groups of data points.'
   },
-  random_forest: {
+  rf: {
     name: 'Random Forest',
     icon: '🌲',
     what: 'Trains hundreds of decision trees, each on a different subset of the data. The final prediction is a consensus across all trees — reducing error from any single bad decision.',
@@ -29,7 +29,7 @@ const MODEL_EXPLANATIONS = {
     weakness: 'Can be memory-intensive due to the large number of trees.',
     analogy: 'Like asking 200 different doctors and going with the majority opinion.'
   },
-  decision_tree: {
+  dt: {
     name: 'Decision Tree',
     icon: '🌿',
     what: 'Makes decisions by asking a series of yes/no questions about the image features until it reaches a conclusion — following a logical flowchart.',
@@ -37,7 +37,7 @@ const MODEL_EXPLANATIONS = {
     weakness: 'Can sometimes focus too much on specific details, missing the "big picture".',
     analogy: 'Like a medical decision flowchart: "Is feature X above Y? → If yes, go to..."'
   },
-  logistic_regression: {
+  lr: {
     name: 'Logistic Regression',
     icon: '📊',
     what: 'A statistical model that calculates the mathematical probability of disease by combining weighted features. Fast and transparent.',

@@ -2,41 +2,7 @@ import { motion } from 'framer-motion';
 import { pageVariants, staggerContainer, cardVariants } from '../animations/pageTransitions';
 import { Github, Linkedin, Mail } from 'lucide-react';
 
-const TEAM = [
-  {
-    name: "Yash Bishnoi",
-    role: "Lead ML Engineer",
-    image: "/yash_real.jpg",
-    bio: "Specializes in computer vision and deep learning architectures for medical imaging.",
-    links: {
-      github: "https://github.com/YashBishnoi07",
-      linkedin: "https://www.linkedin.com/in/yashbishnoi07/",
-      email: "mailto:yashbishnoi.yb7@gmail.com"
-    }
-  },
-  {
-    name: "Siddhant Shaurya",
-    role: "Frontend Developer",
-    image: null,
-    bio: "Creates intuitive, performant user interfaces with React and Framer Motion.",
-    links: {
-      github: "#",
-      linkedin: "#",
-      email: "#"
-    }
-  },
-  {
-    name: "Bhumika Jain",
-    role: "Backend Architect",
-    image: null,
-    bio: "Builds scalable Python microservices using FastAPI and Docker.",
-    links: {
-      github: "#",
-      linkedin: "#",
-      email: "#"
-    }
-  }
-];
+
 
 const TECH_STACK = [
   { category: "Frontend", items: ["React 18", "Vite", "TailwindCSS", "Framer Motion", "GSAP", "Three.js"] },
@@ -62,50 +28,22 @@ export default function AboutPage() {
         </p>
       </div>
 
-      <div className="mb-32">
-        <h2 className="text-3xl font-bold text-center mb-16 font-display">The Core Team</h2>
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-        >
-          {TEAM.map((member, idx) => (
-            <motion.div key={idx} variants={cardVariants} className="glass-card p-8 text-center group">
-              {member.image ? (
-                <div className="relative w-48 h-64 mx-auto mb-8 overflow-hidden rounded-2xl border border-white/10 group-hover:border-med-teal/50 transition-all duration-500 shadow-2xl">
-                  <img 
-                    src={member.image} 
-                    alt={member.name} 
-                    className="w-full h-full object-cover object-top"
-                  />
-                  <div className="absolute inset-0 bg-med-teal/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </div>
-              ) : (
-                <div className="relative w-48 h-64 mx-auto mb-8 rounded-2xl border border-white/10 group-hover:border-med-teal/50 bg-med-mid flex items-center justify-center transition-all duration-500 shadow-2xl">
-                  <span className="text-4xl font-display font-bold text-med-muted group-hover:text-med-teal transition-colors">
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-              )}
-              <h3 className="text-2xl font-bold mb-2 font-display">{member.name}</h3>
-              <p className="text-med-teal-lt text-xs font-bold uppercase tracking-[0.2em] mb-6">{member.role}</p>
-              <p className="text-med-muted text-sm leading-relaxed mb-8">{member.bio}</p>
-              <div className="flex justify-center gap-6 text-med-muted">
-                <a href={member.links.github} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                  <Github className="w-5 h-5" />
-                </a>
-                <a href={member.links.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-med-teal transition-colors">
-                  <Linkedin className="w-5 h-5" />
-                </a>
-                <a href={member.links.email} className="hover:text-med-red transition-colors">
-                  <Mail className="w-5 h-5" />
-                </a>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+      <div className="mb-32 max-w-4xl mx-auto">
+        <h2 className="text-3xl font-bold text-center mb-8 font-display text-med-red">Disclaimer</h2>
+        <div className="glass-card p-8 border-l-4 border-l-med-red bg-med-red/5">
+          <p className="text-med-muted text-lg leading-relaxed mb-6">
+            <strong className="text-med-white">This is a personal project developed for educational and research purposes.</strong>
+          </p>
+          <p className="text-med-muted leading-relaxed mb-6">
+            The deep learning models and predictions provided by this Automated Disease Diagnosis System are experimental and 
+            <strong className="text-med-red-lt"> do not guarantee 100% accuracy.</strong> They are not intended to be a substitute for professional medical advice, 
+            diagnosis, or treatment.
+          </p>
+          <p className="text-med-muted leading-relaxed">
+            Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. 
+            Never disregard professional medical advice or delay in seeking it because of something you have read or processed on this platform.
+          </p>
+        </div>
       </div>
 
       <div className="relative">
