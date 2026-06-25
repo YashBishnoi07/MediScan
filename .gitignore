@@ -35,7 +35,9 @@ dist/
 dataset/
 backend/dataset/
 *.h5
+!backend/models/*.h5
 *.pkl
+!backend/models/*.pkl
 *.json
 !backend/models/*.json
 .env
